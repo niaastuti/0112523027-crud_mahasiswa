@@ -1,11 +1,12 @@
 import { Router, Request, Response } from "express";
 import db from "../config/database";
 import upload from "../middlewares/upload.middleware";
+import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
 // GET ALL dengan Search + Filter + Pagination
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const search = req.query.search as string;
     const prodi_id = req.query.prodi_id as string;
@@ -18,8 +19,8 @@ router.get("/", async (req: Request, res: Response) => {
     const conditions: string[] = [];
 
     if (search) {
-    conditions.push("(m.nim LIKE ? OR m.nama LIKE ?)");
-    params.push(`%${search}%`, `%${search}%`);
+      conditions.push("(m.nim LIKE ? OR m.nama LIKE ?)");
+      params.push(`%${search}%`, `%${search}%`);
     }
 
     if (prodi_id) {
@@ -30,7 +31,6 @@ router.get("/", async (req: Request, res: Response) => {
     const whereClause =
       conditions.length > 0 ? " WHERE " + conditions.join(" AND ") : "";
 
-    // hitung total data (pakai where clause yang sama, params yang sama, TANPA limit/offset)
     const countSql = `
       SELECT COUNT(*) AS total
       FROM mahasiswa m
@@ -41,7 +41,6 @@ router.get("/", async (req: Request, res: Response) => {
     const [countRows]: any = await db.query(countSql, params);
     const total = countRows[0].total;
 
-    // query data dengan limit/offset
     let sql = `
       SELECT
         m.id,
@@ -83,7 +82,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // GET DETAIL dengan JOIN prodi
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
 
@@ -127,6 +126,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 // UPDATE dengan upload foto
 router.put(
   "/:id",
+  authMiddleware,
   upload.single("foto"),
   async (req: Request, res: Response) => {
     try {
@@ -171,6 +171,7 @@ router.put(
 // CREATE dengan upload foto
 router.post(
   "/",
+  authMiddleware,
   upload.single("foto"),
   async (req: Request, res: Response) => {
     try {
@@ -221,7 +222,7 @@ router.post(
 );
 
 // DELETE mahasiswa
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

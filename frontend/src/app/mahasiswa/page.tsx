@@ -12,6 +12,8 @@ import {
 } from "@/lib/api";
 import MahasiswaForm from "../components/MahasiswaForm";
 import MahasiswaTable from "../components/MahasiswaTable";
+import { useRouter } from "next/navigation";
+import { getToken, getUser, logout } from "@/lib/auth";
 
 export default function MahasiswaPage() {
   const [mahasiswa, setMahasiswa] = useState<Mahasiswa[]>([]);
@@ -19,6 +21,18 @@ export default function MahasiswaPage() {
   const [selectedMahasiswa, setSelectedMahasiswa] = useState<Mahasiswa | null>(
     null
   );
+
+  const router = useRouter();
+  const [user, setUser] = useState<{ name: string } | null>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    setUser(getUser());
+  }, [router]);
 
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -78,7 +92,15 @@ export default function MahasiswaPage() {
 
   return (
     <div className="container">
-      <h1>Data Mahasiswa</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>Data Mahasiswa</h1>
+        <div>
+          {user && <span style={{ marginRight: 12 }}>Halo, {user.name}</span>}
+          <button className="btn-secondary" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </div>
 
       <MahasiswaForm
         selectedMahasiswa={selectedMahasiswa}

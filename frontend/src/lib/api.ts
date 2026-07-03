@@ -1,3 +1,5 @@
+import { getToken } from "./auth";
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
@@ -49,7 +51,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return result;
 }
 
-// ambil daftar prodi untuk dropdown
+// ambil daftar prodi untuk dropdown (tidak butuh token)
 export async function getProdi(): Promise<Prodi[]> {
   const response = await fetch(`${API_URL}/prodi`, {
     cache: "no-store",
@@ -73,9 +75,16 @@ export async function getMahasiswa(
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
 
+  const token = getToken();
+
   const response = await fetch(
     `${API_URL}/db/mahasiswa?${query.toString()}`,
-    { cache: "no-store" }
+    {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
   );
 
   return handleResponse<MahasiswaListResponse>(response);
@@ -83,8 +92,13 @@ export async function getMahasiswa(
 
 // tambah mahasiswa (multipart, karena ada upload foto)
 export async function createMahasiswa(formData: FormData): Promise<void> {
+  const token = getToken();
+
   const response = await fetch(`${API_URL}/db/mahasiswa`, {
     method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     body: formData,
   });
 
@@ -96,8 +110,13 @@ export async function updateMahasiswa(
   id: number,
   formData: FormData
 ): Promise<void> {
+  const token = getToken();
+
   const response = await fetch(`${API_URL}/db/mahasiswa/${id}`, {
     method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     body: formData,
   });
 
@@ -105,8 +124,13 @@ export async function updateMahasiswa(
 }
 
 export async function deleteMahasiswa(id: number): Promise<void> {
+  const token = getToken();
+
   const response = await fetch(`${API_URL}/db/mahasiswa/${id}`, {
     method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   await handleResponse(response);

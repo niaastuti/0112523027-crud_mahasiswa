@@ -4,6 +4,7 @@ import path from "path";
 import mahasiswaRoutes from "./routes/mahasiswa.route";
 import mahasiswaDbRoutes from "./routes/mahasiswa-db.route";
 import prodiRoutes from "./routes/prodi.route";
+import authRoutes from "./routes/auth.route";
 
 const app = express();
 
@@ -37,5 +38,7 @@ app.use("/api/mahasiswa", mahasiswaRoutes);
 
 // CRUD Database MySQL
 app.use("/api/db/mahasiswa", mahasiswaDbRoutes);
+
+app.use("/api/auth", authRoutes);
 
 export default app;
