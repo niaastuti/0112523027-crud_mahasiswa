@@ -1,27 +1,37 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Mahasiswa, MahasiswaInput } from "@/lib/api";
+import { BACKEND_URL, Mahasiswa, Prodi } from "@/lib/api";
 
 type Props = {
   selectedMahasiswa: Mahasiswa | null;
-  onSubmit: (payload: MahasiswaInput) => Promise<void>;
+  prodiList: Prodi[];
+  onSubmit: (formData: FormData) => Promise<void>;
   onCancelEdit: () => void;
 };
 
-const initialForm: MahasiswaInput = {
+type FormState = {
+  nim: string;
+  nama: string;
+  prodi_id: string;
+  angkatan: number;
+};
+
+const initialForm: FormState = {
   nim: "",
   nama: "",
-  prodi: "",
+  prodi_id: "",
   angkatan: new Date().getFullYear(),
 };
 
 export default function MahasiswaForm({
   selectedMahasiswa,
+  prodiList,
   onSubmit,
   onCancelEdit,
 }: Props) {
-  const [form, setForm] = useState<MahasiswaInput>(initialForm);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -29,21 +39,40 @@ export default function MahasiswaForm({
       setForm({
         nim: selectedMahasiswa.nim,
         nama: selectedMahasiswa.nama,
-        prodi: selectedMahasiswa.prodi,
+        prodi_id: String(selectedMahasiswa.prodi_id),
         angkatan: selectedMahasiswa.angkatan,
       });
     } else {
       setForm(initialForm);
     }
+
+    setFotoFile(null);
   }, [selectedMahasiswa]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!form.prodi_id) {
+      alert("Prodi wajib dipilih");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await onSubmit(form);
+      const formData = new FormData();
+      formData.append("nim", form.nim);
+      formData.append("nama", form.nama);
+      formData.append("prodi_id", form.prodi_id);
+      formData.append("angkatan", String(form.angkatan));
+
+      if (fotoFile) {
+        formData.append("foto", fotoFile);
+      }
+
+      await onSubmit(formData);
       setForm(initialForm);
+      setFotoFile(null);
     } finally {
       setLoading(false);
     }
@@ -77,14 +106,20 @@ export default function MahasiswaForm({
         </div>
 
         <div className="form-group">
-          <label htmlFor="prodi">Prodi</label>
-          <input
-            id="prodi"
-            value={form.prodi}
-            onChange={(e) => setForm({ ...form, prodi: e.target.value })}
-            placeholder="Informatika"
+          <label htmlFor="prodi_id">Prodi</label>
+          <select
+            id="prodi_id"
+            value={form.prodi_id}
+            onChange={(e) => setForm({ ...form, prodi_id: e.target.value })}
             required
-          />
+          >
+            <option value="">Pilih Prodi</option>
+            {prodiList.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.nama_prodi}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form-group">
@@ -98,6 +133,28 @@ export default function MahasiswaForm({
             }
             required
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="foto">
+            Foto {selectedMahasiswa && "(kosongkan jika tidak ingin ganti)"}
+          </label>
+          <input
+            id="foto"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => setFotoFile(e.target.files?.[0] || null)}
+          />
+
+          {selectedMahasiswa?.foto && (
+            <img
+              src={`${BACKEND_URL}/uploads/mahasiswa/${selectedMahasiswa.foto}`}
+              alt="Foto saat ini"
+              width={40}
+              height={40}
+              style={{ borderRadius: "50%", objectFit: "cover", marginTop: 4 }}
+            />
+          )}
         </div>
       </div>
 

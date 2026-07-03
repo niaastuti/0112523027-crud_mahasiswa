@@ -1,111 +1,139 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import MahasiswaForm from "@/components/MahasiswaForm";
-import MahasiswaTable from "@/components/MahasiswaTable";
 import {
+  Mahasiswa,
+  Prodi,
   createMahasiswa,
   deleteMahasiswa,
   getMahasiswa,
-  Mahasiswa,
-  MahasiswaInput,
+  getProdi,
   updateMahasiswa,
 } from "@/lib/api";
+import MahasiswaForm from "../components/MahasiswaForm";
+import MahasiswaTable from "../components/MahasiswaTable";
 
 export default function MahasiswaPage() {
   const [mahasiswa, setMahasiswa] = useState<Mahasiswa[]>([]);
-  const [selectedMahasiswa, setSelectedMahasiswa] = useState<Mahasiswa | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [prodiList, setProdiList] = useState<Prodi[]>([]);
+  const [selectedMahasiswa, setSelectedMahasiswa] = useState<Mahasiswa | null>(
+    null
+  );
+
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [prodiId, setProdiId] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit] = useState(5);
+  const [totalPage, setTotalPage] = useState(1);
 
   const loadMahasiswa = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await getMahasiswa();
-      setMahasiswa(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal mengambil data mahasiswa");
-    } finally {
-      setLoading(false);
-    }
+    const result = await getMahasiswa({
+      search,
+      prodi_id: prodiId,
+      page,
+      limit,
+    });
+
+    setMahasiswa(result.data);
+    setTotalPage(result.meta.totalPage);
+  };
+
+  const loadProdi = async () => {
+    const data = await getProdi();
+    setProdiList(data);
   };
 
   useEffect(() => {
-    loadMahasiswa();
+    loadProdi();
   }, []);
 
-  const handleSubmit = async (payload: MahasiswaInput) => {
-    try {
-      setMessage("");
-      setError("");
+  useEffect(() => {
+    loadMahasiswa();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, prodiId, page]);
 
-      if (selectedMahasiswa) {
-        await updateMahasiswa(selectedMahasiswa.id, payload);
-        setMessage("Data mahasiswa berhasil diperbarui");
-      } else {
-        await createMahasiswa(payload);
-        setMessage("Data mahasiswa berhasil ditambahkan");
-      }
+  const handleSearch = () => {
+    setPage(1);
+    setSearch(searchInput);
+  };
 
-      setSelectedMahasiswa(null);
-      await loadMahasiswa();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menyimpan data");
+  const handleSubmit = async (formData: FormData) => {
+    if (selectedMahasiswa) {
+      await updateMahasiswa(selectedMahasiswa.id, formData);
+    } else {
+      await createMahasiswa(formData);
     }
+
+    setSelectedMahasiswa(null);
+    await loadMahasiswa();
   };
 
   const handleDelete = async (id: number) => {
-    const confirmed = window.confirm("Yakin ingin menghapus data ini?");
-    if (!confirmed) return;
+    if (!confirm("Yakin ingin menghapus data ini?")) return;
 
-    try {
-      setMessage("");
-      setError("");
-      await deleteMahasiswa(id);
-      setMessage("Data mahasiswa berhasil dihapus");
-      await loadMahasiswa();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menghapus data");
-    }
+    await deleteMahasiswa(id);
+    await loadMahasiswa();
   };
 
   return (
-    <main className="container">
-      <div className="header">
-        <div>
-          <h1>CRUD Data Mahasiswa</h1>
-          <p>Frontend Next.js yang terhubung ke backend Express.js.</p>
-        </div>
-
-        <Link href="/">
-          <button className="btn-secondary">Kembali</button>
-        </Link>
-      </div>
-
-      {message && <div className="message">{message}</div>}
-      {error && <div className="message error">{error}</div>}
+    <div className="container">
+      <h1>Data Mahasiswa</h1>
 
       <MahasiswaForm
         selectedMahasiswa={selectedMahasiswa}
+        prodiList={prodiList}
         onSubmit={handleSubmit}
         onCancelEdit={() => setSelectedMahasiswa(null)}
       />
 
-      <section className="card" style={{ marginTop: 20 }}>
-        <h2>Daftar Mahasiswa</h2>
-        {loading ? (
-          <p>Memuat data...</p>
-        ) : (
-          <MahasiswaTable
-            mahasiswa={mahasiswa}
-            onEdit={setSelectedMahasiswa}
-            onDelete={handleDelete}
-          />
-        )}
-      </section>
-    </main>
+      <div className="filters">
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Cari NIM atau nama"
+        />
+
+        <select
+          value={prodiId}
+          onChange={(e) => {
+            setPage(1);
+            setProdiId(e.target.value);
+          }}
+        >
+          <option value="">Semua Prodi</option>
+          {prodiList.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.nama_prodi}
+            </option>
+          ))}
+        </select>
+
+        <button onClick={handleSearch}>Cari</button>
+      </div>
+
+      <MahasiswaTable
+        mahasiswa={mahasiswa}
+        onEdit={setSelectedMahasiswa}
+        onDelete={handleDelete}
+      />
+
+      <div className="pagination">
+        <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
+          Previous
+        </button>
+
+        <span>
+          Halaman {page} dari {totalPage}
+        </span>
+
+        <button
+          disabled={page >= totalPage}
+          onClick={() => setPage(page + 1)}
+        >
+          Next
+        </button>
+      </div>
+    </div>
   );
 }
