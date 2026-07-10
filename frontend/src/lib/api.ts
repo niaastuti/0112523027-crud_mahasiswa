@@ -41,6 +41,27 @@ export type MahasiswaListResponse = {
   data: Mahasiswa[];
 };
 
+export type UserAccount = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "operator" | "viewer";
+  created_at?: string;
+};
+
+export type UserInput = {
+  name: string;
+  email: string;
+  password: string;
+  role: "admin" | "operator" | "viewer";
+};
+
+export type UserUpdateInput = {
+  name: string;
+  email: string;
+  role: "admin" | "operator" | "viewer";
+};
+
 async function handleResponse<T>(response: Response): Promise<T> {
   const result = await response.json();
 
@@ -131,6 +152,114 @@ export async function deleteMahasiswa(id: number): Promise<void> {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  });
+
+  await handleResponse(response);
+}
+
+// ambil daftar user (admin only)
+export async function getUsers(): Promise<UserAccount[]> {
+  const token = getToken();
+
+  const response = await fetch(`${API_URL}/users`, {
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const result = await handleResponse<{ message: string; data: UserAccount[] }>(
+    response
+  );
+
+  return result.data;
+}
+
+// tambah user baru (admin only)
+export async function createUserAccount(payload: UserInput): Promise<void> {
+  const token = getToken();
+
+  const response = await fetch(`${API_URL}/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  await handleResponse(response);
+}
+
+// update user (admin only)
+export async function updateUserAccount(
+  id: number,
+  payload: UserUpdateInput
+): Promise<void> {
+  const token = getToken();
+
+  const response = await fetch(`${API_URL}/users/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  await handleResponse(response);
+}
+
+// hapus user (admin only)
+export async function deleteUserAccount(id: number): Promise<void> {
+  const token = getToken();
+
+  const response = await fetch(`${API_URL}/users/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  await handleResponse(response);
+}
+
+// reset password user (admin only)
+export async function resetUserPassword(
+  id: number
+): Promise<{ temporaryPassword: string }> {
+  const token = getToken();
+
+  const response = await fetch(`${API_URL}/users/${id}/reset-password`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return handleResponse<{ temporaryPassword: string }>(response);
+}
+
+// user minta link reset password lewat email
+export async function forgotPassword(email: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  await handleResponse(response);
+}
+
+// user submit password baru pakai token dari email
+export async function resetPasswordWithToken(
+  token: string,
+  newPassword: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
   });
 
   await handleResponse(response);

@@ -70,6 +70,9 @@ export default function LoginPage() {
         <button type="submit" className="btn-primary" disabled={loading}>
           {loading ? "Memproses..." : "Login"}
         </button>
+        <p style={{ marginTop: 12 }}>
+  <a href="/forgot-password">Lupa password?</a>
+</p>
       </form>
     </div>
   );

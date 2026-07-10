@@ -99,11 +99,16 @@ export default function MahasiswaPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Data Mahasiswa</h1>
         <div>
-          {user && <span style={{ marginRight: 12 }}>Halo, {user.name} ({user.role})</span>}
-          <button className="btn-secondary" onClick={logout}>
-            Logout
-          </button>
-        </div>
+  {user?.role === "admin" && (
+    <a href="/users" style={{ marginRight: 12 }}>
+      Kelola User
+    </a>
+  )}
+  {user && <span style={{ marginRight: 12 }}>Halo, {user.name} ({user.role})</span>}
+  <button className="btn-secondary" onClick={logout}>
+    Logout
+  </button>
+</div>
       </div>
 
       {canCreate && (

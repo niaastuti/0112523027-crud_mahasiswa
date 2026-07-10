@@ -5,6 +5,8 @@ import mahasiswaRoutes from "./routes/mahasiswa.route";
 import mahasiswaDbRoutes from "./routes/mahasiswa-db.route";
 import prodiRoutes from "./routes/prodi.route";
 import authRoutes from "./routes/auth.route";
+import userRoutes from "./routes/user.route";
+import passwordResetRoutes from "./routes/password-reset.route";
 
 const app = express();
 
@@ -40,5 +42,9 @@ app.use("/api/mahasiswa", mahasiswaRoutes);
 app.use("/api/db/mahasiswa", mahasiswaDbRoutes);
 
 app.use("/api/auth", authRoutes);
+
+app.use("/api/users", userRoutes);
+
+app.use("/api/auth", passwordResetRoutes);
 
 export default app;
