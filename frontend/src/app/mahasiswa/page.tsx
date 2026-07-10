@@ -23,7 +23,7 @@ export default function MahasiswaPage() {
   );
 
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -33,6 +33,10 @@ export default function MahasiswaPage() {
     }
     setUser(getUser());
   }, [router]);
+
+  const canCreate = user?.role === "admin" || user?.role === "operator";
+  const canEdit = user?.role === "admin" || user?.role === "operator";
+  const canDelete = user?.role === "admin";
 
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -95,19 +99,21 @@ export default function MahasiswaPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Data Mahasiswa</h1>
         <div>
-          {user && <span style={{ marginRight: 12 }}>Halo, {user.name}</span>}
+          {user && <span style={{ marginRight: 12 }}>Halo, {user.name} ({user.role})</span>}
           <button className="btn-secondary" onClick={logout}>
             Logout
           </button>
         </div>
       </div>
 
-      <MahasiswaForm
-        selectedMahasiswa={selectedMahasiswa}
-        prodiList={prodiList}
-        onSubmit={handleSubmit}
-        onCancelEdit={() => setSelectedMahasiswa(null)}
-      />
+      {canCreate && (
+        <MahasiswaForm
+          selectedMahasiswa={selectedMahasiswa}
+          prodiList={prodiList}
+          onSubmit={handleSubmit}
+          onCancelEdit={() => setSelectedMahasiswa(null)}
+        />
+      )}
 
       <div className="filters">
         <input
@@ -138,6 +144,8 @@ export default function MahasiswaPage() {
         mahasiswa={mahasiswa}
         onEdit={setSelectedMahasiswa}
         onDelete={handleDelete}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
 
       <div className="pagination">

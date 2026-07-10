@@ -2,131 +2,143 @@ import { Router, Request, Response } from "express";
 import db from "../config/database";
 import upload from "../middlewares/upload.middleware";
 import { authMiddleware } from "../middlewares/auth.middleware";
+import { allowRoles } from "../middlewares/role.middleware";
 
 const router = Router();
 
-// GET ALL dengan Search + Filter + Pagination
-router.get("/", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const search = req.query.search as string;
-    const prodi_id = req.query.prodi_id as string;
+// GET ALL dengan Search + Filter + Pagination — semua role boleh akses
+router.get(
+  "/",
+  authMiddleware,
+  allowRoles("admin", "operator", "viewer"),
+  async (req: Request, res: Response) => {
+    try {
+      const search = req.query.search as string;
+      const prodi_id = req.query.prodi_id as string;
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 5;
-    const offset = (page - 1) * limit;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 5;
+      const offset = (page - 1) * limit;
 
-    const params: any[] = [];
-    const conditions: string[] = [];
+      const params: any[] = [];
+      const conditions: string[] = [];
 
-    if (search) {
-      conditions.push("(m.nim LIKE ? OR m.nama LIKE ?)");
-      params.push(`%${search}%`, `%${search}%`);
-    }
+      if (search) {
+        conditions.push("(m.nim LIKE ? OR m.nama LIKE ?)");
+        params.push(`%${search}%`, `%${search}%`);
+      }
 
-    if (prodi_id) {
-      conditions.push("m.prodi_id = ?");
-      params.push(Number(prodi_id));
-    }
+      if (prodi_id) {
+        conditions.push("m.prodi_id = ?");
+        params.push(Number(prodi_id));
+      }
 
-    const whereClause =
-      conditions.length > 0 ? " WHERE " + conditions.join(" AND ") : "";
+      const whereClause =
+        conditions.length > 0 ? " WHERE " + conditions.join(" AND ") : "";
 
-    const countSql = `
-      SELECT COUNT(*) AS total
-      FROM mahasiswa m
-      JOIN prodi p ON m.prodi_id = p.id
-      ${whereClause}
-    `;
+      const countSql = `
+        SELECT COUNT(*) AS total
+        FROM mahasiswa m
+        JOIN prodi p ON m.prodi_id = p.id
+        ${whereClause}
+      `;
 
-    const [countRows]: any = await db.query(countSql, params);
-    const total = countRows[0].total;
+      const [countRows]: any = await db.query(countSql, params);
+      const total = countRows[0].total;
 
-    let sql = `
-      SELECT
-        m.id,
-        m.nim,
-        m.nama,
-        m.prodi_id,
-        p.nama_prodi,
-        m.angkatan,
-        m.foto,
-        m.created_at,
-        m.updated_at
-      FROM mahasiswa m
-      JOIN prodi p ON m.prodi_id = p.id
-      ${whereClause}
-      ORDER BY m.id DESC
-      LIMIT ? OFFSET ?
-    `;
+      let sql = `
+        SELECT
+          m.id,
+          m.nim,
+          m.nama,
+          m.prodi_id,
+          p.nama_prodi,
+          m.angkatan,
+          m.foto,
+          m.created_at,
+          m.updated_at
+        FROM mahasiswa m
+        JOIN prodi p ON m.prodi_id = p.id
+        ${whereClause}
+        ORDER BY m.id DESC
+        LIMIT ? OFFSET ?
+      `;
 
-    const dataParams = [...params, limit, offset];
+      const dataParams = [...params, limit, offset];
 
-    const [rows] = await db.query(sql, dataParams);
+      const [rows] = await db.query(sql, dataParams);
 
-    res.json({
-      message: "Data mahasiswa berhasil diambil",
-      meta: {
-        page,
-        limit,
-        total,
-        totalPage: Math.ceil(total / limit),
-      },
-      data: rows,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Terjadi kesalahan server",
-    });
-  }
-});
-
-// GET DETAIL dengan JOIN prodi
-router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id;
-
-    const [rows]: any = await db.query(
-      `
-      SELECT
-        m.id,
-        m.nim,
-        m.nama,
-        m.prodi_id,
-        p.nama_prodi,
-        m.angkatan,
-        m.foto,
-        m.created_at,
-        m.updated_at
-      FROM mahasiswa m
-      JOIN prodi p ON m.prodi_id = p.id
-      WHERE m.id = ?
-      `,
-      [id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({
-        message: "Mahasiswa tidak ditemukan",
+      res.json({
+        message: "Data mahasiswa berhasil diambil",
+        meta: {
+          page,
+          limit,
+          total,
+          totalPage: Math.ceil(total / limit),
+        },
+        data: rows,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Terjadi kesalahan server",
       });
     }
-
-    res.json({
-      message: "Detail mahasiswa berhasil diambil",
-      data: rows[0],
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Terjadi kesalahan server",
-    });
   }
-});
+);
 
-// UPDATE dengan upload foto
+// GET DETAIL dengan JOIN prodi — semua role boleh akses
+router.get(
+  "/:id",
+  authMiddleware,
+  allowRoles("admin", "operator", "viewer"),
+  async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id;
+
+      const [rows]: any = await db.query(
+        `
+        SELECT
+          m.id,
+          m.nim,
+          m.nama,
+          m.prodi_id,
+          p.nama_prodi,
+          m.angkatan,
+          m.foto,
+          m.created_at,
+          m.updated_at
+        FROM mahasiswa m
+        JOIN prodi p ON m.prodi_id = p.id
+        WHERE m.id = ?
+        `,
+        [id]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({
+          message: "Mahasiswa tidak ditemukan",
+        });
+      }
+
+      res.json({
+        message: "Detail mahasiswa berhasil diambil",
+        data: rows[0],
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Terjadi kesalahan server",
+      });
+    }
+  }
+);
+
+// UPDATE dengan upload foto — admin & operator boleh, viewer tidak
 router.put(
   "/:id",
   authMiddleware,
+  allowRoles("admin", "operator"),
   upload.single("foto"),
   async (req: Request, res: Response) => {
     try {
@@ -168,10 +180,11 @@ router.put(
   }
 );
 
-// CREATE dengan upload foto
+// CREATE dengan upload foto — admin & operator boleh, viewer tidak
 router.post(
   "/",
   authMiddleware,
+  allowRoles("admin", "operator"),
   upload.single("foto"),
   async (req: Request, res: Response) => {
     try {
@@ -221,30 +234,36 @@ router.post(
   }
 );
 
-// DELETE mahasiswa
-router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+// DELETE mahasiswa — hanya admin
+router.delete(
+  "/:id",
+  authMiddleware,
+  allowRoles("admin"),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
 
-    const [result]: any = await db.query("DELETE FROM mahasiswa WHERE id = ?", [
-      id,
-    ]);
+      const [result]: any = await db.query(
+        "DELETE FROM mahasiswa WHERE id = ?",
+        [id]
+      );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        message: "Mahasiswa tidak ditemukan",
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          message: "Mahasiswa tidak ditemukan",
+        });
+      }
+
+      res.json({
+        message: "Mahasiswa berhasil dihapus",
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Terjadi kesalahan server",
       });
     }
-
-    res.json({
-      message: "Mahasiswa berhasil dihapus",
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Terjadi kesalahan server",
-    });
   }
-});
+);
 
 export default router;
